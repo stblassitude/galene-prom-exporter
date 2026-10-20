@@ -1,0 +1,16 @@
+# Configuration for galene-prom-exporter; see
+# https://github.com/stblassitude/galene-prom-exporter for all options.
+
+# Base URL of the Galene server.
+#GALENE_URL=https://localhost:8443
+
+# Admin credentials for the Galene API (HTTP Basic), or an admin token.
+#GALENE_USERNAME=admin
+#GALENE_PASSWORD=
+#GALENE_TOKEN=
+
+# Address to serve metrics on.
+#GALENE_EXPORTER_LISTEN=:9814
+
+# Additional command line flags, e.g. -insecure for self-signed certificates.
+ARGS=""

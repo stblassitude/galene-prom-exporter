@@ -1,0 +1,19 @@
+[Unit]
+Description=Prometheus exporter for Galene
+Documentation=https://github.com/stblassitude/galene-prom-exporter
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+EnvironmentFile=-/etc/default/galene-prom-exporter
+ExecStart=/usr/bin/galene-prom-exporter $ARGS
+Restart=on-failure
+DynamicUser=yes
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+
+[Install]
+WantedBy=multi-user.target

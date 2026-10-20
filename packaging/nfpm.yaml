@@ -1,0 +1,34 @@
+# nfpm configuration for building the Debian package.
+# Expects GOARCH and VERSION in the environment, and the binary for that
+# architecture at ./galene-prom-exporter.
+name: galene-prom-exporter
+arch: ${GOARCH}
+platform: linux
+version: ${VERSION}
+section: net
+priority: optional
+maintainer: Stefan Bethke <stb@lassitu.de>
+description: Prometheus exporter for the Galene videoconferencing server.
+homepage: https://github.com/stblassitude/galene-prom-exporter
+license: MIT
+
+contents:
+  - src: galene-prom-exporter
+    dst: /usr/bin/galene-prom-exporter
+    file_info:
+      mode: 0755
+  - src: packaging/galene-prom-exporter.service
+    dst: /lib/systemd/system/galene-prom-exporter.service
+  - src: packaging/galene-prom-exporter.default
+    dst: /etc/default/galene-prom-exporter
+    type: config|noreplace
+    file_info:
+      mode: 0600
+  - src: LICENSE
+    dst: /usr/share/doc/galene-prom-exporter/copyright
+    file_info:
+      mode: 0644
+
+scripts:
+  postinstall: packaging/postinstall.sh
+  preremove: packaging/preremove.sh

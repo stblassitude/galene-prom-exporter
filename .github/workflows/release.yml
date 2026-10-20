@@ -1,0 +1,90 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+env:
+  NFPM_VERSION: v2.48.0
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        goarch: [amd64, arm64]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - run: go test ./...
+      - name: Build binary
+        env:
+          CGO_ENABLED: "0"
+          GOOS: linux
+          GOARCH: ${{ matrix.goarch }}
+        run: |
+          go build -trimpath -ldflags="-s -w" -o galene-prom-exporter .
+          cp galene-prom-exporter "galene-prom-exporter-linux-${GOARCH}"
+      - name: Build Debian package
+        env:
+          GOARCH: ${{ matrix.goarch }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          export VERSION="${TAG#v}"
+          go run "github.com/goreleaser/nfpm/v2/cmd/nfpm@${NFPM_VERSION}" \
+            package --config packaging/nfpm.yaml --packager deb --target .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: galene-prom-exporter-linux-${{ matrix.goarch }}
+          path: |
+            galene-prom-exporter-linux-${{ matrix.goarch }}
+            *.deb
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      TAG: ${{ github.ref_name }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Checksums
+        working-directory: dist
+        run: sha256sum -- * > SHA256SUMS
+
+      - name: Release notes
+        run: |
+          git fetch --force --tags
+          if prev=$(git describe --tags --abbrev=0 --match 'v*' "${TAG}^" 2>/dev/null); then
+            range="${prev}..${TAG}"
+            echo "## Changes since ${prev}" > notes.md
+          else
+            range="${TAG}"
+            echo "## Changes" > notes.md
+          fi
+          echo >> notes.md
+          git log --no-merges --reverse --pretty='- %s (%h)' "${range}" >> notes.md
+          cat notes.md
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${TAG}" dist/* \
+            --title "${TAG}" \
+            --notes-file notes.md \
+            --verify-tag
